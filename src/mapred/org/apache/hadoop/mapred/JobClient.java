@@ -87,7 +87,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-
+//////        
 /**
  * <code>JobClient</code> is the primary interface for the user-job to interact
  * with the {@link JobTracker}.
@@ -1854,8 +1854,8 @@ public class JobClient extends Configured implements MRConstants, Tool  {
     JobStatus[] jobs = jobsToComplete();
     if (jobs == null)
       jobs = new JobStatus[0];
-
-    System.out.printf("%d jobs currently running\n", jobs.length);
+    
+    //System.out.printf("%d jobs currently running\n", jobs.length);
     displayJobList(jobs);
   }
     
