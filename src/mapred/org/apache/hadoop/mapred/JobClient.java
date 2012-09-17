@@ -1855,7 +1855,7 @@ public class JobClient extends Configured implements MRConstants, Tool  {
     if (jobs == null)
       jobs = new JobStatus[0];
     
-    System.out.printf("%d jobs currently running\n", jobs.length);
+    System.out.printf("%d jobs currently running please: \n", jobs.length);
     displayJobList(jobs);
   }
     
