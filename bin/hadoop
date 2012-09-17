@@ -108,7 +108,7 @@ fi
 
 # some Java parameters
 if [ "$JAVA_HOME" != "" ]; then
-  echo "run java in $JAVA_HOME"
+  #echo "run java in $JAVA_HOME"
   JAVA_HOME=$JAVA_HOME
 fi
   
@@ -387,6 +387,6 @@ if [ "$starting_secure_dn" = "true" ]; then
                                                 org.apache.hadoop.hdfs.server.datanode.SecureDataNodeStarter "$@"
 else
   # run it
-  echo "$JAVA" -classpath "$CLASSPATH" $CLASS "$@"
+  #echo "$JAVA" -classpath "$CLASSPATH" $CLASS "$@"
   exec "$JAVA" -Dproc_$COMMAND $JAVA_HEAP_MAX $HADOOP_OPTS -classpath "$CLASSPATH" $CLASS "$@"
 fi
