@@ -419,11 +419,12 @@
       </fileset>
     </copy>
 
+    <!--
     <copy todir="${conf.dir}" verbose="true">
       <fileset dir="${conf.dir}" includes="**/*.template"/>
       <mapper type="glob" from="*.template" to="*"/>
     </copy>
-
+    -->
     <copy todir="${contrib.dir}" verbose="true">
       <fileset dir="${contrib.dir}" includes="**/*.template"/>
       <mapper type="glob" from="*.template" to="*"/>
