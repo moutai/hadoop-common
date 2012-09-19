@@ -454,11 +454,8 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
           // The sleep interval must be no more than half the maximum expiry time
           // for a task tracker.
           //
-        	
-          TASKTRACKER_EXPIRY_INTERVAL= 60*1000;
-          System.out.println("sleeping "+ TASKTRACKER_EXPIRY_INTERVAL/3);
-          //Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL / 3);
-          
+          LOG.info("Current TaskTracker expiry interval is:"+TASKTRACKER_EXPIRY_INTERVAL);
+          //System.out.println("Tracker Expiry Thread sleeping for: "+ TASKTRACKER_EXPIRY_INTERVAL/3);
           Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL/3);
           
           //
@@ -537,7 +534,33 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         
   }
 
-  
+	// /////////////////////////////////////////////////////
+	// Updates the expiration date based on external info
+	// /////////////////////////////////////////////////////
+	class UpdateExpirationDate implements Runnable {
+		public UpdateExpirationDate() {
+		}
+		/**
+		 * The run method lives for the life of the JobTracker, and modifies the 
+		 * expiration time limit depending on external info
+		 */
+		public void run() {
+			while (true) {
+				try {
+					
+					TASKTRACKER_EXPIRY_INTERVAL = 10*1000;
+					LOG.info("new interval:"+TASKTRACKER_EXPIRY_INTERVAL);
+					Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL / 3);
+				} catch (InterruptedException iex) {
+					break;
+				} catch (Exception t) {
+					LOG.error("Expiration Date Updater Thread got exception: "
+							+ StringUtils.stringifyException(t));
+				}
+			}
+		}
+
+	}  
   
   
   
@@ -2127,7 +2150,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     new HashMap<String, TaskTracker>();
   Map<String,Integer>uniqueHostsMap = new ConcurrentHashMap<String, Integer>();
   ExpireTrackers expireTrackers = new ExpireTrackers();
+  UpdateExpirationDate updateExpiration = new UpdateExpirationDate();
   Thread expireTrackersThread = null;
+  Thread updateExpirationThread = null;
   RetireJobs retireJobs = new RetireJobs();
   Thread retireJobsThread = null;
   final int retiredJobsCacheSize;
@@ -2221,9 +2246,8 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
   
   JobTracker(final JobConf conf, String identifier, Clock clock, QueueManager qm) 
   throws IOException, InterruptedException { 
-	  
-	System.out.println("hello breakpoint");
-	LOG.info("Hello breakpoint");
+	//System.out.println("hello breakpoint");
+	//LOG.info("Hello breakpoint");
     this.queueManager = qm;
     this.clock = clock;
     // Set ports, start RPC servers, setup security policy etc.
@@ -2627,7 +2651,11 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     
     this.expireTrackersThread = new Thread(this.expireTrackers,
                                           "expireTrackers");
+    this.updateExpirationThread = new Thread(this.updateExpiration,
+            "updateExpiration");
     this.expireTrackersThread.start();
+    this.updateExpirationThread.start();
+    
     this.retireJobsThread = new Thread(this.retireJobs, "retireJobs");
     this.retireJobsThread.start();
     expireLaunchingTaskThread.start();
@@ -2672,6 +2700,17 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         ex.printStackTrace();
       }
     }
+    
+    if (this.updateExpirationThread != null && this.updateExpirationThread.isAlive()) {
+        LOG.info("Stopping udpateExpiration");
+        this.updateExpirationThread.interrupt();
+        try {
+          this.updateExpirationThread.join();
+        } catch (InterruptedException ex) {
+          ex.printStackTrace();
+        }
+      }
+    
     if (this.retireJobsThread != null && this.retireJobsThread.isAlive()) {
       LOG.info("Stopping retirer");
       this.retireJobsThread.interrupt();
