@@ -454,8 +454,13 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
           // The sleep interval must be no more than half the maximum expiry time
           // for a task tracker.
           //
-          Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL / 3);
-
+        	
+          TASKTRACKER_EXPIRY_INTERVAL= 60*1000;
+          System.out.println("sleeping "+ TASKTRACKER_EXPIRY_INTERVAL/3);
+          //Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL / 3);
+          
+          Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL/3);
+          
           //
           // Loop through all expired items in the queue
           //
@@ -469,26 +474,45 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
           synchronized (JobTracker.this) {
             synchronized (taskTrackers) {
               synchronized (trackerExpiryQueue) {
-                long now = clock.getTime();
+            	LOG.info("Moussa:locked all the necessary lists");  
+            	//get the current time
+            	long now = clock.getTime();
+            	//create object for the tasktrackerstatus
                 TaskTrackerStatus leastRecent = null;
+                
+                /*
+                 * while has three conditions that need to be true.
+                 * 1. The queue needs to have more than one element.
+                 * 2. 	(leastRecent = trackerExpiryQueue.first()) != null 
+                 * 		seems like it double checks to see if there is something in the expiryqueue.
+                 * 3. (now - leastRecent.getLastSeen()) > TASKTRACKER_EXPIRY_INTERVAL)
+                 * 		This one seems like it checks that the duration between now and when the least
+                 * 	recent task tracker, meaning in the .first(), was last seen is bigger than the interval 
+                 */
                 while ((trackerExpiryQueue.size() > 0) &&
                        (leastRecent = trackerExpiryQueue.first()) != null &&
                        ((now - leastRecent.getLastSeen()) > TASKTRACKER_EXPIRY_INTERVAL)) {
 
-                        
                   // Remove profile from head of queue
+                	//what is this profile?
                   trackerExpiryQueue.remove(leastRecent);
                   String trackerName = leastRecent.getTrackerName();
                         
                   // Figure out if last-seen time should be updated, or if tracker is dead
+                  LOG.info("Moussa:checking if the last seen time should be updated or the tracker is dead");
+                  
                   TaskTracker current = getTaskTracker(trackerName);
                   TaskTrackerStatus newProfile = 
                     (current == null ) ? null : current.getStatus();
+                  LOG.info("Moussa:status of current task"+current.getStatus());
+                          
                   // Items might leave the taskTracker set through other means; the
                   // status stored in 'taskTrackers' might be null, which means the
                   // tracker has already been destroyed.
+               
                   if (newProfile != null) {
                     if ((now - newProfile.getLastSeen()) > TASKTRACKER_EXPIRY_INTERVAL) {
+                    	LOG.info("Moussa:about to remove tasktracker: "+ current.getTrackerName());
                       removeTracker(current);
                       // remove the mapping from the hosts list
                       String hostname = newProfile.getHost();
@@ -513,6 +537,10 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         
   }
 
+  
+  
+  
+  
   synchronized void historyFileCopied(JobID jobid, String historyFile) {
     JobInProgress job = getJob(jobid);
     if (job != null) { //found in main cache
@@ -610,7 +638,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
           List<JobInProgress> retiredJobs = new ArrayList<JobInProgress>();
           long now = clock.getTime();
           long retireBefore = now - RETIRE_JOB_INTERVAL;
-
           synchronized (jobs) {
             for(JobInProgress job: jobs.values()) {
               if (minConditionToRetire(job, now) &&
@@ -2194,6 +2221,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
   
   JobTracker(final JobConf conf, String identifier, Clock clock, QueueManager qm) 
   throws IOException, InterruptedException { 
+	  
+	System.out.println("hello breakpoint");
+	LOG.info("Hello breakpoint");
     this.queueManager = qm;
     this.clock = clock;
     // Set ports, start RPC servers, setup security policy etc.
@@ -2289,7 +2319,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 
     LOG.info("Starting jobtracker with owner as " +
         getMROwner().getShortUserName());
-
+    
+    LOG.info("Starting jobtracker with owner as " +
+            getMROwner().getShortUserName());
     // Create the scheduler
     Class<? extends TaskScheduler> schedulerClass
       = conf.getClass("mapred.jobtracker.taskScheduler",
@@ -2350,6 +2382,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     this.conf.set("mapred.job.tracker", (this.localMachine + ":" + this.port));
     this.localFs = FileSystem.getLocal(conf);
     LOG.info("JobTracker up at: " + this.port);
+    
+    
+    
     this.infoPort = this.infoServer.getPort();
     this.conf.set("mapred.job.tracker.http.address", 
         infoBindAddress + ":" + this.infoPort); 
