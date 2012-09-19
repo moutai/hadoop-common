@@ -538,7 +538,16 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 	// Updates the expiration date based on external info
 	// /////////////////////////////////////////////////////
 	class UpdateExpirationDate implements Runnable {
+		TrackerPriceWatcher trackerPricerWatcher;
 		public UpdateExpirationDate() {
+			/* create that accepts a job id
+			 * that would be in some conf file,
+			 * needs to know the bid of the task nodes of the job
+			 * the type of the task nodes with region 
+			 * the current market price of that node type at that region
+			 * and returns a new expiration time depending on these parameters
+			*/
+			trackerPricerWatcher=new TrackerPricerWatcher();
 		}
 		/**
 		 * The run method lives for the life of the JobTracker, and modifies the 
@@ -548,7 +557,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 			while (true) {
 				try {
 					
-					TASKTRACKER_EXPIRY_INTERVAL = 10*1000;
+					TASKTRACKER_EXPIRY_INTERVAL = trackerPricerWatcher.getExpirationTime();
 					LOG.info("new interval:"+TASKTRACKER_EXPIRY_INTERVAL);
 					Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL / 3);
 				} catch (InterruptedException iex) {
@@ -561,6 +570,28 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 		}
 
 	}  
+	
+	// /////////////////////////////////////////////////////
+	// Updates the expiration date based on external info
+	// /////////////////////////////////////////////////////
+	class TrackerPriceWatcher {
+		long ExpirationTime = 10*1000;
+		public TrackerPriceWatcher() {
+			
+		}
+		public long getExpirationTime()
+		{
+			/* create that accepts a job id
+			 * that would be in some conf file,
+			 * needs to know the bid of the task nodes of the job
+			 * the type of the task nodes with region 
+			 * the current market price of that node type at that region
+			 * and returns a new expiration time depending on these parameters
+			*/
+			return ExpirationTime;
+		}
+	}  
+		
   
   
   
