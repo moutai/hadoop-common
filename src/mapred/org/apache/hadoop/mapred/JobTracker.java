@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -456,8 +457,8 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
           //
           LOG.info("Current TaskTracker expiry interval is:"+TASKTRACKER_EXPIRY_INTERVAL);
           //System.out.println("Tracker Expiry Thread sleeping for: "+ TASKTRACKER_EXPIRY_INTERVAL/3);
-          Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL/3);
-          
+          //Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL/3);
+          Thread.sleep(10* 1000);
           //
           // Loop through all expired items in the queue
           //
@@ -471,7 +472,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
           synchronized (JobTracker.this) {
             synchronized (taskTrackers) {
               synchronized (trackerExpiryQueue) {
-            	LOG.info("Moussa:locked all the necessary lists");  
+            	//LOG.info("Moussa:locked all the necessary lists");  
             	//get the current time
             	long now = clock.getTime();
             	//create object for the tasktrackerstatus
@@ -538,7 +539,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 	// Updates the expiration date based on external info
 	// /////////////////////////////////////////////////////
 	class UpdateExpirationDate implements Runnable {
-		TrackerPriceWatcher trackerPricerWatcher;
+		TrackerPriceWatcher trackerPriceWatcher;
 		public UpdateExpirationDate() {
 			/* create that accepts a job id
 			 * that would be in some conf file,
@@ -547,7 +548,13 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 			 * the current market price of that node type at that region
 			 * and returns a new expiration time depending on these parameters
 			*/
-			trackerPricerWatcher=new TrackerPricerWatcher();
+			try {
+				trackerPriceWatcher=new TrackerPriceWatcher();
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		/**
 		 * The run method lives for the life of the JobTracker, and modifies the 
@@ -557,9 +564,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 			while (true) {
 				try {
 					
-					TASKTRACKER_EXPIRY_INTERVAL = trackerPricerWatcher.getExpirationTime();
+					TASKTRACKER_EXPIRY_INTERVAL = trackerPriceWatcher.getExpirationTime();
 					LOG.info("new interval:"+TASKTRACKER_EXPIRY_INTERVAL);
-					Thread.sleep(TASKTRACKER_EXPIRY_INTERVAL / 3);
+					Thread.sleep(10*1000);
 				} catch (InterruptedException iex) {
 					break;
 				} catch (Exception t) {
@@ -575,12 +582,16 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 	// Updates the expiration date based on external info
 	// /////////////////////////////////////////////////////
 	class TrackerPriceWatcher {
+		
 		long ExpirationTime = 10*1000;
-		public TrackerPriceWatcher() {
-			
+		Scanner MarketStatusScanner;
+		File MarketStatusFile;
+		int marketStatus;
+		public TrackerPriceWatcher() throws Exception{
+			MarketStatusFile = new File("src/contrib/market-plugin/emr-market-status.txt");
 		}
-		public long getExpirationTime()
-		{
+		
+		public long getExpirationTime() throws Exception{
 			/* create that accepts a job id
 			 * that would be in some conf file,
 			 * needs to know the bid of the task nodes of the job
@@ -588,6 +599,27 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 			 * the current market price of that node type at that region
 			 * and returns a new expiration time depending on these parameters
 			*/
+
+			//for prototyping I just use a file with a boolean to say if the task nodes are down or not.
+			
+			MarketStatusScanner = new Scanner(MarketStatusFile);
+			
+			marketStatus = MarketStatusScanner.nextInt();
+			
+			LOG.info("The current status of the Market is: "+ marketStatus);
+			if (marketStatus==1)//everything is fine, keep old interval
+			{
+					LOG.info("Keeping/Reseting the default interval: Keep calm and carry on.");
+					//ExpirationTime=conf.getLong("mapred.tasktracker.expiry.interval", 10 * 60 * 1000);
+					ExpirationTime=10 * 60 * 1000;
+			}
+			else //do something fancy to determine the best interval
+			{
+					LOG.info("Market Alert: calculating optimal interval for your situation.");
+					//
+					ExpirationTime=10 * 1000;
+					
+			}
 			return ExpirationTime;
 		}
 	}  
